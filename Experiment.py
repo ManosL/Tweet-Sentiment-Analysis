@@ -116,59 +116,6 @@ def readLexica():
     
     return tuple(weights)
 
-def tsne_plot(model,words_to_plot):
-    "Creates and TSNE model and plots it"
-    labels = []
-    tokens = []
-    for word in list(model.wv.vocab)[0:words_to_plot + 1]:
-        tokens.append(model[word])
-        labels.append(word)
-    
-    tsne_model = TSNE(perplexity=40, n_components=2, init='pca', n_iter=2500, random_state=23)
-    new_values = tsne_model.fit_transform(tokens)
-
-    x = []
-    y = []
-
-    for value in new_values:
-        x.append(value[0])
-        y.append(value[1])
-
-    plt.figure(figsize=(16, 16)) 
-
-    for i in range(len(x)):
-        plt.scatter(x[i],y[i])
-        plt.annotate(labels[i],
-                xy=(x[i], y[i]),
-                xytext=(5, 2),
-                textcoords='offset points',
-                ha='right',
-                va='bottom')
-    
-    plt.show()
-
-    return
-
-def W2V_TweetVectorize(tweets,w2v_model):
-    vectors = []
-    vector = np.zeros(w2v_model.wv.vector_size)
-
-    for tweet in tweets:
-        vector_words_num = 0
-        splitted_tweet = nltk.word_tokenize(tweet)
-
-        for word in splitted_tweet:
-            if word in w2v_model.wv.vocab:
-                vector += w2v_model[word]
-                vector_words_num += 1
-
-        if vector_words_num == 0:
-            print(tweet)
-            vectors.append(vector)
-        else:
-            vectors.append(vector / vector_words_num)
-
-    return vectors 
 
 affin_dict,valence_tweet_dict,generic_dict,nrc_val_dict,nrctag_val_dict = readLexica()
 
@@ -405,12 +352,66 @@ else:
 
 print(model_w2v.wv.most_similar(positive="trump"))
 
+def W2V_TweetVectorize(tweets,w2v_model):
+    vectors = []
+    vector = np.zeros(w2v_model.wv.vector_size)
+
+    for tweet in tweets:
+        vector_words_num = 0
+        splitted_tweet = nltk.word_tokenize(tweet)
+
+        for word in splitted_tweet:
+            if word in w2v_model.wv.vocab:
+                vector += w2v_model[word]
+                vector_words_num += 1
+
+        if vector_words_num == 0:
+            print(tweet)
+            vectors.append(vector)
+        else:
+            vectors.append(vector / vector_words_num)
+
+    return vectors 
+
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
     w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v)
 
     dump(w2v_train_vectors,open("pickle_files/w2v_train_vectors.pkl","wb"))
 else:
     w2v_train_vectors = load(open("pickle_files/w2v_train_vectors.pkl","rb"))
+
+def tsne_plot(model,words_to_plot):
+    "Creates and TSNE model and plots it"
+    labels = []
+    tokens = []
+    for word in list(model.wv.vocab)[0:words_to_plot + 1]:
+        tokens.append(model[word])
+        labels.append(word)
+    
+    tsne_model = TSNE(perplexity=40, n_components=2, init='pca', n_iter=2500, random_state=23)
+    new_values = tsne_model.fit_transform(tokens)
+
+    x = []
+    y = []
+
+    for value in new_values:
+        x.append(value[0])
+        y.append(value[1])
+
+    plt.figure(figsize=(16, 16)) 
+
+    for i in range(len(x)):
+        plt.scatter(x[i],y[i])
+        plt.annotate(labels[i],
+                xy=(x[i], y[i]),
+                xytext=(5, 2),
+                textcoords='offset points',
+                ha='right',
+                va='bottom')
+    
+    plt.show()
+
+    return
 
 words_num_to_plot = 1000
 tsne_plot(model_w2v,words_num_to_plot)
