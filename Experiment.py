@@ -119,37 +119,49 @@ def readLexica():
 
 affin_dict,valence_tweet_dict,generic_dict,nrc_val_dict,nrctag_val_dict = readLexica()
 
-train_set_path = '../twitter_data/train2017.tsv' # 'Experimental_Data.tsv'
+train_set_path = '../twitter_data/train2017.tsv'
 test_set_path  = '../twitter_data/test2017.tsv'
-test_set_gold  = '../twitter_data/SemEval2017_task4_subtaskA_test_english_gold.txt'
+test_set_gold_path  = '../twitter_data/SemEval2017_task4_subtaskA_test_english_gold.txt'
 
-train_datafile = open(train_set_path,"r")
+filesToRead = [train_set_path,test_set_path,test_set_gold_path]
+dataframes  = []
 
-line = train_datafile.readline()
-lines = []
+for filePath in filesToRead:
+    file = open(filePath,"r")
 
-while len(line) != 0:
-    line = line.split("\t")
+    line = file.readline()
+    lines = []
 
-    line[len(line) - 1] = line[len(line) - 1].replace('\n','')
+    while len(line) != 0:
+        line = line.split("\t")
 
-    if len(line) > 0:
-        lines.append(line)
+        line[len(line) - 1] = line[len(line) - 1].replace('\n','')
 
-    line = train_datafile.readline()
+        if len(line) > 0:
+            lines.append(line)
 
+        line = file.readline()
 
-training_dataframe = pd.DataFrame(data = lines,columns = ['ID1','ID2','Tag','Tweet'])
+    if filePath != test_set_gold_path:
+        curr_df = pd.DataFrame(data = lines,columns = ['ID1','ID2','Tag','Tweet'])
+        curr_df = curr_df[['Tag','Tweet']]
+        dataframes.append(curr_df)
+    else:
+        curr_df = pd.DataFrame(data = lines,columns = ['ID1','Tag'])   
+        curr_df = curr_df[['Tag']]        # I suppose that original tags are written with the
+                                          # same sequence as tweets at file
+        dataframes.append(curr_df)
+
+    file.close()
+
+training_dataframe = dataframes[0]
+test_dataframe = dataframes[1]
+print(test_dataframe)
+test_solutions = dataframes[2]
 
 # Getting only the 2 columns that we need
 
 training_dataframe = training_dataframe[['Tag','Tweet']]
-
-print(training_dataframe)
-
-training_dataframe.to_csv("Experimental_Data_csv.csv",index = False,header = True)
-
-training_dataframe = pd.read_csv("Experimental_Data_csv.csv")
 
 print(training_dataframe)
 
@@ -471,6 +483,3 @@ print(KNN_Classifier(tfidf,training_dataframe['Tag'],None,None))
 print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],None,None))
 
 ####################################
-os.remove("Experimental_Data_csv.csv")
-
-train_datafile.close()
