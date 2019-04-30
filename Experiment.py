@@ -156,7 +156,6 @@ for filePath in filesToRead:
 
 training_dataframe = dataframes[0]
 test_dataframe = dataframes[1]
-print(test_dataframe)
 test_solutions = dataframes[2]
 
 # Getting only the 2 columns that we need
