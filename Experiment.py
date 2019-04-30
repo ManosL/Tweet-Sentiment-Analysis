@@ -354,7 +354,7 @@ tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
 
 # Word2Vec
 
-if not os.path.isfile('./pickle_files/train_model_w2v.pkl'):
+if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
     model_w2v_train = gensim.models.Word2Vec(
                 tokenized_tweet,
@@ -374,7 +374,7 @@ if not os.path.isfile('./pickle_files/train_model_w2v.pkl'):
 else:
     model_w2v_train = load(open("pickle_files/train_w2v_model.pkl","rb"))
 
-if not os.path.isfile('./pickle_files/test_model_w2v.pkl'):
+if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
     tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
     model_w2v_test = gensim.models.Word2Vec(
                 tokenized_tweet,
@@ -395,7 +395,7 @@ else:
 
 # WRITE VECTORS TO PICKLE FILE
 
-print(model_w2v.wv.most_similar(positive="trump"))
+print(model_w2v_train.wv.most_similar(positive="trump"))
 
 def W2V_TweetVectorize(tweets,w2v_model):
     vectors = []
@@ -466,7 +466,7 @@ def tsne_plot(model,words_to_plot):
     return
 
 words_num_to_plot = 1000
-tsne_plot(model_w2v,words_num_to_plot)
+tsne_plot(model_w2v_train,words_num_to_plot)
 
 # TO ADD (PROBABLY) EXTRA FEATURES
 ####################################
