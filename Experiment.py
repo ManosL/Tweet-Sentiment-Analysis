@@ -172,11 +172,13 @@ def W2V_TweetVectorize(tweets,w2v_model):
 
 affin_dict,valence_tweet_dict,generic_dict,nrc_val_dict,nrctag_val_dict = readLexica()
 
-path = '../twitter_data/train2017.tsv' # 'Experimental_Data.tsv'
+train_set_path = '../twitter_data/train2017.tsv' # 'Experimental_Data.tsv'
+test_set_path  = '../twitter_data/test2017.tsv'
+test_set_gold  = '../twitter_data/SemEval2017_task4_subtaskA_test_english_gold.txt'
 
-exp_datafile = open(path,"r")
+train_datafile = open(train_set_path,"r")
 
-line = exp_datafile.readline()
+line = train_datafile.readline()
 lines = []
 
 while len(line) != 0:
@@ -187,7 +189,8 @@ while len(line) != 0:
     if len(line) > 0:
         lines.append(line)
 
-    line = exp_datafile.readline()
+    line = train_datafile.readline()
+
 
 training_dataframe = pd.DataFrame(data = lines,columns = ['ID1','ID2','Tag','Tweet'])
 
@@ -216,9 +219,9 @@ neutral_num = tags['neutral']
 positive_num = tags['positive']
 negative_num = tags['negative']
 
-print("Positive Tweets Percentage %.1f" % ((positive_num / len(training_dataframe))*100))
-print("Negative Tweets Percentage %.1f" % ((negative_num / len(training_dataframe))*100))
-print("Neutral Tweets Percentage %.1f" % ((neutral_num / len(training_dataframe))*100))
+print("Positive Tweets Percentage %.1f" % ((float(positive_num) / len(training_dataframe))*100))
+print("Negative Tweets Percentage %.1f" % ((float(negative_num) / len(training_dataframe))*100))
+print("Neutral Tweets Percentage %.1f" % ((float(neutral_num) / len(training_dataframe))*100))
 
 # Printing the bar plot for tweets
 
@@ -424,15 +427,9 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     svc = svm.SVC(kernel='linear', C=1, probability=True)
     svc = svc.fit(xtrain, ytrain) # xtrain:bag of words features for train data, ytrain: train data labels
-    prediction = svc.predict_proba(xvalid) #predict on the validation set
+    prediction = svc.predict(xvalid) #predict on the validation set
 
-    tags = []
-    classes = svc.classes_
-    print(classes)
-    for pred in prediction:
-        tags.append(classes[list(pred).index(max(pred))])
-
-    F1_Score = f1_score(yvalid, tags,average = 'micro') #evaluate on the validation set
+    F1_Score = f1_score(yvalid,prediction,average = 'micro') #evaluate on the validation set
 
     correct_num = 0
     for tag,yval in zip(tags,yvalid):
@@ -475,4 +472,4 @@ print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],None,None))
 ####################################
 os.remove("Experimental_Data_csv.csv")
 
-exp_datafile.close()
+train_datafile.close()
