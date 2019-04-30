@@ -336,21 +336,27 @@ bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
 
 bow_xtrain = bow_vectorizer.fit_transform(training_dataframe['Tweet'])
 
+bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
+
+bow_xtest  = bow_vectorizer.fit_transform(test_dataframe['Tweet'])
+
 print(bow_xtrain.shape)
 
 # TF-IDF
 
 tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
 
-tfidf = tfidf_vectorizer.fit_transform(training_dataframe['Tweet'])
+tfidf_train = tfidf_vectorizer.fit_transform(training_dataframe['Tweet'])
 
-print(tfidf.shape)
+tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
+
+tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
 
 # Word2Vec
 
-if not os.path.isfile('./pickle_files/model_w2v.pkl'):
+if not os.path.isfile('./pickle_files/train_model_w2v.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
-    model_w2v = gensim.models.Word2Vec(
+    model_w2v_train = gensim.models.Word2Vec(
                 tokenized_tweet,
                 size=200, # desired no. of features/independent variables
                 window=5, # context window size
@@ -361,11 +367,31 @@ if not os.path.isfile('./pickle_files/model_w2v.pkl'):
                 workers= 2, # no.of cores
                 seed = 34) 
 
-    model_w2v.train(tokenized_tweet, total_examples= len(training_dataframe['Tweet']), epochs=20)
+    model_w2v_train.train(tokenized_tweet, total_examples= len(training_dataframe['Tweet']),
+                         epochs=20)
 
-    dump(model_w2v,open("pickle_files/w2v_model.pkl","wb"))
+    dump(model_w2v_train,open("pickle_files/train_w2v_model.pkl","wb"))
 else:
-    model_w2v = load(open("pickle_files/w2v_model.pkl","rb"))
+    model_w2v_train = load(open("pickle_files/train_w2v_model.pkl","rb"))
+
+if not os.path.isfile('./pickle_files/test_model_w2v.pkl'):
+    tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
+    model_w2v_test = gensim.models.Word2Vec(
+                tokenized_tweet,
+                size=200, # desired no. of features/independent variables
+                window=5, # context window size
+                min_count=2,
+                sg = 1, # 1 for skip-gram model
+                hs = 0,
+                negative = 10, # for negative sampling
+                workers= 2, # no.of cores
+                seed = 34) 
+
+    model_w2v_test.train(tokenized_tweet, total_examples= len(test_dataframe['Tweet']), epochs=20)
+
+    dump(model_w2v_test,open("pickle_files/test_w2v_model.pkl","wb"))
+else:
+    model_w2v_test = load(open("pickle_files/test_w2v_model.pkl","rb"))
 
 # WRITE VECTORS TO PICKLE FILE
 
@@ -393,11 +419,18 @@ def W2V_TweetVectorize(tweets,w2v_model):
     return vectors 
 
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
-    w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v)
+    w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v_train)
 
     dump(w2v_train_vectors,open("pickle_files/w2v_train_vectors.pkl","wb"))
 else:
     w2v_train_vectors = load(open("pickle_files/w2v_train_vectors.pkl","rb"))
+
+if not os.path.isfile('./pickle_files/w2v_test_vectors.pkl'):
+    w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v_test)
+
+    dump(w2v_test_vectors,open("pickle_files/w2v_test_vectors.pkl","wb"))
+else:
+    w2v_test_vectors = load(open("pickle_files/w2v_test_vectors.pkl","rb"))
 
 def tsne_plot(model,words_to_plot):
     "Creates and TSNE model and plots it"
@@ -441,28 +474,40 @@ tsne_plot(model_w2v,words_num_to_plot)
 ########## CLASSIFICATION ##########
 
 def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels):
-    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors[0:1000], 
-                                        train_labels[0:1000],
+    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
+                                        train_labels,
                                         random_state=42, test_size=0.2)
 
     svc = svm.SVC(kernel='linear', C=1, probability=True)
     svc = svc.fit(xtrain, ytrain) # xtrain:bag of words features for train data, ytrain: train data labels
     prediction = svc.predict(xvalid) #predict on the validation set
 
-    F1_Score = f1_score(yvalid,prediction,average = 'micro') #evaluate on the validation set
+    F1_Score_split = f1_score(yvalid,prediction,average = 'micro') #evaluate on the validation set
 
     correct_num = 0
-    for tag,yval in zip(tags,yvalid):
-        if yval == tag:
+    for pred,yval in zip(prediction,yvalid):
+        if yval == pred:
             correct_num += 1
 
-    percentage = (float(correct_num) / float(len(yvalid)))
+    percentage_split = (float(correct_num) / float(len(yvalid)))
 
-    return (percentage,F1_Score)
+    svc = svc.fit(train_vectors,train_labels)
+    prediction = svc.predict(test_vectors)
+
+    F1_Score = f1_score(test_labels,prediction,average = 'micro')
+
+    correct_num = 0
+    for pred,yval in zip(prediction,test_labels):
+        if yval == pred:
+            correct_num += 1
+
+    percentage = (float(correct_num) / float(len(test_labels)))
+
+    return (percentage_split,F1_Score_split,percentage,F1_Score)
 
 def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
-    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors[0:1000], 
-                                        train_labels[0:1000],
+    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
+                                        train_labels,
                                         random_state=42, test_size=0.2)   
 
     knn_classifier = KNeighborsClassifier(n_neighbors = 5)
@@ -470,23 +515,35 @@ def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
     knn_classifier = knn_classifier.fit(xtrain,ytrain)
     prediction = knn_classifier.predict(xvalid)
 
-    F1_Score = f1_score(yvalid,prediction,average = 'micro')
+    F1_Score_split = f1_score(yvalid,prediction,average = 'micro')
 
     correct_num = 0
     for tag,yval in zip(prediction,yvalid):
         if tag == yval:
             correct_num += 1
     
-    percentage = (float(correct_num)/float(len(yvalid)))
+    percentage_split = (float(correct_num)/float(len(yvalid)))
 
-    return (percentage,F1_Score)
+    knn_classifier = knn_classifier.fit(train_vectors,train_labels)
+    prediction = knn_classifier.predict(test_vectors)
 
-print(SVM_Classifier(bow_xtrain,training_dataframe['Tag'],None,None))
-print(SVM_Classifier(tfidf,training_dataframe['Tag'],None,None))
-print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],None,None))
+    F1_Score = f1_score(test_labels,prediction,average = 'micro')
 
-print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],None,None))
-print(KNN_Classifier(tfidf,training_dataframe['Tag'],None,None))
-print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],None,None))
+    correct_num = 0
+    for pred,yval in zip(prediction,test_labels):
+        if yval == pred:
+            correct_num += 1
+
+    percentage = (float(correct_num) / float(len(test_labels)))
+
+    return (percentage_split,F1_Score_split,percentage,F1_Score)
+
+print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],bow_xtest,test_solutions['Tag']))
+#print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
+#print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
+
+#print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],bow_xtest,test_solutions['Tag']))
+#print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
+#print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
 
 ####################################
