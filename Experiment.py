@@ -208,15 +208,7 @@ for tweet in training_dataframe['Tweet']:
 training_dataframe['Tweet'] = cleaned_tweets
 cleaned_tweets = []
 
-all_adjs_and_verbs = []
-all_adjs_and_verbs_pos = []
-
-all_adjs_and_verbs_neutral = []
-neutral_adjs_and_verbs = set()
-
-all_adjs_and_verbs_neg = []
-
-for tweet_tag,tweet in zip(training_dataframe['Tag'],training_dataframe['Tweet']):
+for tweet in training_dataframe['Tweet']:
     original_tweet = tweet
     for letter in tweet:
         if letter in my_punctuation:
@@ -236,8 +228,29 @@ for tweet_tag,tweet in zip(training_dataframe['Tag'],training_dataframe['Tweet']
             
     tweet = [word for word in cleaned_tweet if word not in nltk.corpus.stopwords.words('english')
                                                         and len(word) > 0]
+        
+    tweet = ' '.join(tweet)
+    
+    cleaned_tweets.append(tweet)
 
-    pos_tags = pos_tag(tweet)
+training_dataframe['Tweet'] = cleaned_tweets
+
+# STATISTICS PART 
+
+all_adjs_and_verbs = []
+all_adjs_and_verbs_pos = []
+
+all_adjs_and_verbs_neutral = []
+neutral_adjs_and_verbs = set()
+
+all_adjs_and_verbs_neg = []
+
+for tweet,tweet_tag in zip(training_dataframe['Tweet'],training_dataframe['Tag']):
+    splitted_tweet = tweet.split(' ')
+    splitted_tweet = [word for word in splitted_tweet if len(word) > 0]
+
+    print(splitted_tweet)
+    pos_tags = pos_tag(splitted_tweet)
 
     for tag in pos_tags: 
         if (tag[1][0] == 'J' or tag[1][0] == 'V') and len(tag[0]) > 1:
@@ -251,11 +264,7 @@ for tweet_tag,tweet in zip(training_dataframe['Tag'],training_dataframe['Tweet']
                     all_adjs_and_verbs_neg.append(tag[0])
             else:
                 all_adjs_and_verbs_neutral.append(tag[0])
-                neutral_adjs_and_verbs.add(tag[0])
-        
-    tweet = ' '.join(tweet)
-    
-    cleaned_tweets.append(tweet)
+                neutral_adjs_and_verbs.add(tag[0])   
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs)
 
@@ -293,7 +302,6 @@ plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
 plt.show()
 
-training_dataframe['Tweet'] = cleaned_tweets
 print(training_dataframe)
 ###############################################
 
