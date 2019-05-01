@@ -44,8 +44,9 @@ def stop_words(stemmer,tweet):
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
 
 location = '../twitter_data/train2017.tsv'
+train = pd.DataFrame(columns = ['ID1','ID2','Tag','Tweet'])
 
-train = pd.read_csv(location,sep="\t",names=['ID1','ID2','Tag','Tweet'])
+train = pd.read_csv(location,sep='\t',names=['ID1','ID2','Tag','Tweet'])
 
 print(train.Tweet)
 

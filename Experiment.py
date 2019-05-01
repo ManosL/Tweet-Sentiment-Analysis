@@ -7,6 +7,8 @@ import nltk
 from nltk import pos_tag
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from nltk.corpus import wordnet
+from nltk.stem import  WordNetLemmatizer
 
 # General syntax to import specific functions in a library: 
 ##from (library) import (specific library function)
@@ -50,6 +52,16 @@ from sklearn.metrics import f1_score
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
 
+def get_wordnet_pos(word):
+    """Map POS tag to first character lemmatize() accepts"""
+    tag = nltk.pos_tag([word])[0][1][0].upper()
+    tag_dict = {"J": wordnet.ADJ,
+                "N": wordnet.NOUN,
+                "V": wordnet.VERB,
+                "R": wordnet.ADV}
+
+    return tag_dict.get(tag, wordnet.NOUN)
+
 def remove_unnecessary_words(str):
     #FIND A WAY TO REMOVE EMOJIS
     if len(str) > 0 and str[0] != '@' and str[0] != '#':
@@ -64,7 +76,7 @@ def remove_unnecessary_words(str):
 
 def stop_words(stemmer,tweet):
     
-    tweet = [ stemmer.stem(word) for word in tweet if word not in stopwords.words('english') 
+    tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if word not in stopwords.words('english') 
                                                     and len(word) > 1]
     return tweet
 
@@ -197,9 +209,6 @@ plt.xticks(rotation = 0)
 
 matplotlib.pyplot.show()
 
-# EXAMPLE CLEANUP(CONVERTS TWEETS TO LOWER CASE)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
-
 ##############################################
 # CLEANUP PHASE #
 
@@ -219,10 +228,14 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("h
 
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
-stemmer = PorterStemmer()
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
+lemmatizer = WordNetLemmatizer()
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(lemmatizer,t) ))
 
 print(training_dataframe.Tweet)
+
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
+
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
@@ -232,8 +245,8 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
-stemmer = PorterStemmer()
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
+
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(lemmatizer,t) ))
 
 print(test_dataframe.Tweet)
 """
