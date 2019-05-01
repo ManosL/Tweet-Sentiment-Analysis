@@ -23,6 +23,19 @@ import wordcloud
 
 import re
 
+def remove_unnecessary_words(str):
+    #FIND A WAY TO REMOVE EMOJIS
+    if len(str) > 0 and str[0] != '@' and str[0] != '#':
+        if len(str) > 4 and str[0:4] != 'http':
+            return True
+        elif len(str) <= 4:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
 def stop_words(stemmer,tweet):
     
     tweet = [ stemmer.stem(word) for word in tweet if word not in stopwords.words('english') and len(word) > 1]
@@ -59,8 +72,9 @@ train['Tweet'] = train.Tweet.apply(lambda t: re.sub(re_punctuation,"",t))
 
 train['Tweet'] = train.Tweet.apply(lambda t: re.sub("@[A-Z-a-z]+","",t))
 train['Tweet'] = train.Tweet.apply(lambda t: re.sub("#[A-Z-a-z]+","",t))
+train['Tweet'] = train.Tweet.apply(lambda t: re.sub("http[A-Z-a-z]+","",t))
 train['Tweet'] = train.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
-
+#train['Tweet'] = train.Tweet.apply(lambda t: ' '.join(filter(remove_unnecessary_words,t)))
 train['Tweet'] = train.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
 stemmer = PorterStemmer()
@@ -68,3 +82,4 @@ train['Tweet'] = train.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 print(train.Tweet)
 
+train.to_csv('test.csv',index=False,header=False)
