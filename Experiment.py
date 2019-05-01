@@ -8,7 +8,7 @@ from nltk import pos_tag
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.corpus import wordnet
-from nltk.stem import  WordNetLemmatizer
+from nltk.stem import WordNetLemmatizer
 
 # General syntax to import specific functions in a library: 
 ##from (library) import (specific library function)
@@ -75,9 +75,13 @@ def remove_unnecessary_words(str):
         return False
 
 def stop_words(stemmer,tweet):
-    
+
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if word not in stopwords.words('english') 
                                                     and len(word) > 1]
+                                                     
+    #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
+    #                                                and len(word) > 1) or word == 'not']
+
     return tweet
 
 def unify_negations(words):
@@ -176,15 +180,10 @@ for filePath in filesToRead:
 
 file.close()
 
-
-
-
 training_dataframe = dataframes[0]
-print(training_dataframe)
 test_dataframe = dataframes[1]
 test_solutions = dataframes[2]
 
-print(test_dataframe)
 """
 print("Positive: %d\nNegative: %d\nNeutral: %d\n" % 
             (len(training_dataframe[training_dataframe['Tag'] == 'positive']),
@@ -212,7 +211,6 @@ matplotlib.pyplot.show()
 ##############################################
 # CLEANUP PHASE #
 
-
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
@@ -229,12 +227,14 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("h
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
 lemmatizer = WordNetLemmatizer()
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(lemmatizer,t) ))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: ' '.join( stop_words(lemmatizer,t) ))
+
+#stemmer = PorterStemmer()
+#training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 print(training_dataframe.Tweet)
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
-
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
@@ -245,55 +245,14 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
+lemmatizer = WordNetLemmatizer()
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: ' '.join( stop_words(lemmatizer,t) ))
 
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(lemmatizer,t) ))
+#stemmer = PorterStemmer()
+#test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 print(test_dataframe.Tweet)
-"""
-cleaned_tweets = []
 
-for tweet in training_dataframe['Tweet']:
-    tweet = tweet.split(' ')
-
-    tweet = filter(remove_unnecessary_words,tweet) # Removing hashtags,tags and links
-    
-    tweet = ' '.join(tweet)
-
-    cleaned_tweets.append(tweet)
-
-training_dataframe['Tweet'] = cleaned_tweets
-cleaned_tweets = []
-
-for tweet in training_dataframe['Tweet']:
-    original_tweet = tweet
-
-#    for letter in tweet:
-#        if letter in my_punctuation:
-#            for char in my_punctuation:
-#                if letter == char:
-#                    tweet = tweet.replace(char,' ')
-
-
-    splitted_tweet = nltk.word_tokenize(tweet) 
-    splitted_tweet = unify_negations(splitted_tweet)  #I do that because splits words like can't
-
-    cleaned_tweet = []
-
-
-    for word in splitted_tweet:             #Removing punctuation
-        cleaned_tweet.append(word.strip(my_punctuation))
-
-
-    stemmer = PorterStemmer()
-            
-    tweet = [stemmer.stem(word)  for word in cleaned_tweet if word not in nltk.corpus.stopwords.words('english')
-                                                        and len(word) > 1]   
-    tweet = ' '.join(tweet)
-    
-    cleaned_tweets.append(tweet)
-
-training_dataframe['Tweet'] = cleaned_tweets
-"""
 # STATISTICS PART 
 
 all_adjs_and_verbs = []
@@ -312,14 +271,14 @@ for tweet,tweet_tag in zip(training_dataframe['Tweet'],training_dataframe['Tag']
     pos_tags = pos_tag(splitted_tweet)
 
     for tag in pos_tags: 
-        if (tag[1][0] == 'J' or tag[1][0] == 'V') and len(tag[0]) > 1:
+        if tag[0] == 'not' or ((tag[1][0] == 'J' or tag[1][0] == 'V') and len(tag[0]) > 1):
             all_adjs_and_verbs.append(tag[0])
 
             if tweet_tag == 'positive':
-                if tag[0] not in neutral_adjs_and_verbs:
+                if tag[0] == 'not' or (tag[0] not in neutral_adjs_and_verbs):
                     all_adjs_and_verbs_pos.append(tag[0])
             elif tweet_tag == 'negative':
-                if tag[0] not in neutral_adjs_and_verbs:
+                if tag[0] == 'not' or (tag[0] not in neutral_adjs_and_verbs):
                     all_adjs_and_verbs_neg.append(tag[0])
             else:
                 all_adjs_and_verbs_neutral.append(tag[0])
