@@ -5,6 +5,7 @@ import numpy as np
 
 import nltk
 from nltk import pos_tag
+from nltk.stem import PorterStemmer
 
 # General syntax to import specific functions in a library: 
 ##from (library) import (specific library function)
@@ -25,7 +26,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.manifold import TSNE
 
-import gensim
+#import gensim
 
 from pickle import load,dump
 
@@ -154,6 +155,9 @@ for filePath in filesToRead:
 
     file.close()
 
+
+
+
 training_dataframe = dataframes[0]
 test_dataframe = dataframes[1]
 test_solutions = dataframes[2]
@@ -210,11 +214,13 @@ cleaned_tweets = []
 
 for tweet in training_dataframe['Tweet']:
     original_tweet = tweet
-    for letter in tweet:
-        if letter in my_punctuation:
-            for char in my_punctuation:
-                if letter == char:
-                    tweet = tweet.replace(char,' ')
+
+#    for letter in tweet:
+#        if letter in my_punctuation:
+#            for char in my_punctuation:
+#                if letter == char:
+#                    tweet = tweet.replace(char,' ')
+
 
     splitted_tweet = nltk.word_tokenize(tweet) 
     splitted_tweet = unify_negations(splitted_tweet)  #I do that because splits words like can't
@@ -225,10 +231,11 @@ for tweet in training_dataframe['Tweet']:
     for word in splitted_tweet:             #Removing punctuation
         cleaned_tweet.append(word.strip(my_punctuation))
 
+
+    stemmer = PorterStemmer()
             
-    tweet = [word for word in cleaned_tweet if word not in nltk.corpus.stopwords.words('english')
-                                                        and len(word) > 0]
-        
+    tweet = [stemmer.stem(word)  for word in cleaned_tweet if word not in nltk.corpus.stopwords.words('english')
+                                                        and len(word) > 1]   
     tweet = ' '.join(tweet)
     
     cleaned_tweets.append(tweet)
@@ -247,9 +254,9 @@ all_adjs_and_verbs_neg = []
 
 for tweet,tweet_tag in zip(training_dataframe['Tweet'],training_dataframe['Tag']):
     splitted_tweet = tweet.split(' ')
-    splitted_tweet = [word for word in splitted_tweet if len(word) > 0]
+    splitted_tweet = [word for word in splitted_tweet if len(word) > 1]
 
-    print(splitted_tweet)
+    #print(splitted_tweet)
     pos_tags = pos_tag(splitted_tweet)
 
     for tag in pos_tags: 
@@ -353,9 +360,10 @@ tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
 tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
 
 # Word2Vec
-
+"""
 if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
+
     model_w2v_train = gensim.models.Word2Vec(
                 tokenized_tweet,
                 size=200, # desired no. of features/independent variables
@@ -376,6 +384,7 @@ else:
 
 if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
     tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
+   
     model_w2v_test = gensim.models.Word2Vec(
                 tokenized_tweet,
                 size=200, # desired no. of features/independent variables
@@ -545,5 +554,5 @@ print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],bow_xtes
 #print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],bow_xtest,test_solutions['Tag']))
 #print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
 #print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
-
+"""
 ####################################
