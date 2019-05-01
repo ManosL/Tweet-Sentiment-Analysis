@@ -5,6 +5,7 @@ import numpy as np
 
 import nltk
 from nltk import pos_tag
+from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
 # General syntax to import specific functions in a library: 
@@ -17,6 +18,8 @@ import matplotlib.pyplot as plt
 import pandas as pd #this is how I usually import pandas
 import sys #only needed to determine Python version number
 import matplotlib #only needed to determine Matplotlib version number
+
+import re
 
 import wordcloud
 
@@ -58,6 +61,12 @@ def remove_unnecessary_words(str):
             return False
     else:
         return False
+
+def stop_words(stemmer,tweet):
+    
+    tweet = [ stemmer.stem(word) for word in tweet if word not in stopwords.words('english') 
+                                                    and len(word) > 1]
+    return tweet
 
 def unify_negations(words):
     new_words = []
@@ -128,25 +137,42 @@ filesToRead = [train_set_path,test_set_path,test_set_gold_path]
 dataframes  = []
 
 for filePath in filesToRead:
+    file = open(filePath,"r")
+
+    line = file.readline()
+    lines = []
+
+    while len(line) != 0:
+        line = line.split("\t")
+
+        line[len(line) - 1] = line[len(line) - 1].replace('\n','')
+
+        if len(line) > 0:
+            lines.append(line)
+
+        line = file.readline()
+
     if filePath != test_set_gold_path:
-        curr_df = pd.read_csv(filePath,sep="\t",names=['ID1','ID2','Tag','Tweet'])
+        curr_df = pd.DataFrame(data = lines,columns = ['ID1','ID2','Tag','Tweet'])
         curr_df = curr_df[['Tag','Tweet']]
         dataframes.append(curr_df)
     else:
-        curr_df = pd.read_csv(filePath,sep="\t",names=['ID1','Tag']) 
+        curr_df = pd.DataFrame(data = lines,columns = ['ID1','Tag'])   
         curr_df = curr_df[['Tag']]        # I suppose that original tags are written with the
                                           # same sequence as tweets at file
         dataframes.append(curr_df)
+
+file.close()
 
 
 
 
 training_dataframe = dataframes[0]
+print(training_dataframe)
 test_dataframe = dataframes[1]
 test_solutions = dataframes[2]
 
-print(training_dataframe)
-
+print(test_dataframe)
 """
 print("Positive: %d\nNegative: %d\nNeutral: %d\n" % 
             (len(training_dataframe[training_dataframe['Tag'] == 'positive']),
@@ -175,8 +201,42 @@ matplotlib.pyplot.show()
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 ##############################################
-# CLEANUP PHASE 
+# CLEANUP PHASE #
 
+
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
+
+#re_punctuation = r"[{}]".format(my_punctuation)
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+
+#training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
+
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
+
+
+
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
+
+stemmer = PorterStemmer()
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
+
+print(training_dataframe.Tweet)
+
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
+
+
+
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
+
+stemmer = PorterStemmer()
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
+
+print(test_dataframe.Tweet)
+"""
 cleaned_tweets = []
 
 for tweet in training_dataframe['Tweet']:
@@ -220,7 +280,7 @@ for tweet in training_dataframe['Tweet']:
     cleaned_tweets.append(tweet)
 
 training_dataframe['Tweet'] = cleaned_tweets
-
+"""
 # STATISTICS PART 
 
 all_adjs_and_verbs = []
@@ -532,6 +592,8 @@ print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],bow_xtes
 
 #print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],bow_xtest,test_solutions['Tag']))
 #print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
-#print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
+print(len(w2v_train_vectors))
+print(len(training_dataframe['Tag']))
+print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
 
 ####################################
