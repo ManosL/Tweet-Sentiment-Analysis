@@ -26,7 +26,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.manifold import TSNE
 
-#import gensim
+import gensim
 
 from pickle import load,dump
 
@@ -128,32 +128,15 @@ filesToRead = [train_set_path,test_set_path,test_set_gold_path]
 dataframes  = []
 
 for filePath in filesToRead:
-    file = open(filePath,"r")
-
-    line = file.readline()
-    lines = []
-
-    while len(line) != 0:
-        line = line.split("\t")
-
-        line[len(line) - 1] = line[len(line) - 1].replace('\n','')
-
-        if len(line) > 0:
-            lines.append(line)
-
-        line = file.readline()
-
     if filePath != test_set_gold_path:
-        curr_df = pd.DataFrame(data = lines,columns = ['ID1','ID2','Tag','Tweet'])
+        curr_df = pd.read_csv(filePath,sep="\t",names=['ID1','ID2','Tag','Tweet'])
         curr_df = curr_df[['Tag','Tweet']]
         dataframes.append(curr_df)
     else:
-        curr_df = pd.DataFrame(data = lines,columns = ['ID1','Tag'])   
+        curr_df = pd.read_csv(filePath,sep="\t",names=['ID1','Tag']) 
         curr_df = curr_df[['Tag']]        # I suppose that original tags are written with the
                                           # same sequence as tweets at file
         dataframes.append(curr_df)
-
-    file.close()
 
 
 
@@ -161,10 +144,6 @@ for filePath in filesToRead:
 training_dataframe = dataframes[0]
 test_dataframe = dataframes[1]
 test_solutions = dataframes[2]
-
-# Getting only the 2 columns that we need
-
-training_dataframe = training_dataframe[['Tag','Tweet']]
 
 print(training_dataframe)
 
@@ -360,7 +339,7 @@ tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
 tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
 
 # Word2Vec
-"""
+
 if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
 
@@ -393,7 +372,7 @@ if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
                 sg = 1, # 1 for skip-gram model
                 hs = 0,
                 negative = 10, # for negative sampling
-                workers= 2, # no.of cores
+                workers= 8, # no.of cores
                 seed = 34) 
 
     model_w2v_test.train(tokenized_tweet, total_examples= len(test_dataframe['Tweet']), epochs=20)
@@ -554,5 +533,5 @@ print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],bow_xtes
 #print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],bow_xtest,test_solutions['Tag']))
 #print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
 #print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
-"""
+
 ####################################
