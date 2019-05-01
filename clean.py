@@ -41,7 +41,7 @@ def stop_words(stemmer,tweet):
     tweet = [ stemmer.stem(word) for word in tweet if word not in stopwords.words('english') and len(word) > 1]
     return tweet
 
-my_punctuation = '\!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
+my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
 
 location = '../twitter_data/train2017.tsv'
 
@@ -65,16 +65,17 @@ matplotlib.pyplot.show()
 
 train['Tweet'] = train.Tweet.apply(lambda t: t.lower())
 
+#re_punctuation = r"[{}]".format(my_punctuation)
+train['Tweet'] = train.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+
 #train['Tweet'] = train.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
-re_punctuation = r"[{}]".format(my_punctuation)
-train['Tweet'] = train.Tweet.apply(lambda t: re.sub(re_punctuation,"",t))
+train['Tweet'] = train.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
+train['Tweet'] = train.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
+train['Tweet'] = train.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
 
-train['Tweet'] = train.Tweet.apply(lambda t: re.sub("@[A-Z-a-z]+","",t))
-train['Tweet'] = train.Tweet.apply(lambda t: re.sub("#[A-Z-a-z]+","",t))
-train['Tweet'] = train.Tweet.apply(lambda t: re.sub("http[A-Z-a-z]+","",t))
-train['Tweet'] = train.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
-#train['Tweet'] = train.Tweet.apply(lambda t: ' '.join(filter(remove_unnecessary_words,t)))
+
+
 train['Tweet'] = train.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
 stemmer = PorterStemmer()
