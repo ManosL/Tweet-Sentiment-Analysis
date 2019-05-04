@@ -193,6 +193,7 @@ print("Positive: %d\nNegative: %d\nNeutral: %d\n" %
 
 #COUNT example
 tags = training_dataframe['Tag'].value_counts()
+print(tags)
 neutral_num = tags['neutral']
 positive_num = tags['positive']
 negative_num = tags['negative']
@@ -251,9 +252,30 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: ' '.join( stop_wo
 #stemmer = PorterStemmer()
 #test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
-print(test_dataframe.Tweet)
+#print(test_dataframe.Tweet)
 
 # STATISTICS PART 
+
+training_dataframe['WordCount'] = training_dataframe.Tweet.apply(lambda t: len(t.split()))
+
+lines = []
+
+for attr in ['positive','negative','neutral']:
+    wanted_tweets = training_dataframe[training_dataframe['Tag'] == attr]
+    wanted_tweets_count = wanted_tweets['WordCount']
+
+    lines.append([max(wanted_tweets_count),min(wanted_tweets_count),
+                  sum(wanted_tweets_count)/len(wanted_tweets_count),
+                  np.std(wanted_tweets)])
+
+    wanted_tweets = wanted_tweets.sort_values(by = 'WordCount')
+    hist = wanted_tweets['WordCount'].value_counts(sort = False).sort_index()
+    print(hist)
+    hist.plot.bar(title = attr.title() + " tweet no. of words distribution")
+    plt.show()
+
+print(pd.DataFrame(data = lines,columns = ['Max','Min','Average','Standard Deviation'],
+                   index = ['positive','negative','neutral']))
 
 all_adjs_and_verbs = []
 all_adjs_and_verbs_pos = []
@@ -389,9 +411,9 @@ if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
     model_w2v_train.train(tokenized_tweet, total_examples= len(training_dataframe['Tweet']),
                          epochs=20)
 
-    dump(model_w2v_train,open("pickle_files/train_w2v_model.pkl","wb"))
+    dump(model_w2v_train,open("./pickle_files/train_w2v_model.pkl","w+b"))
 else:
-    model_w2v_train = load(open("pickle_files/train_w2v_model.pkl","rb"))
+    model_w2v_train = load(open("./pickle_files/train_w2v_model.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
     tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
@@ -409,9 +431,9 @@ if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
 
     model_w2v_test.train(tokenized_tweet, total_examples= len(test_dataframe['Tweet']), epochs=20)
 
-    dump(model_w2v_test,open("pickle_files/test_w2v_model.pkl","wb"))
+    dump(model_w2v_test,open("./pickle_files/test_w2v_model.pkl","w+b"))
 else:
-    model_w2v_test = load(open("pickle_files/test_w2v_model.pkl","rb"))
+    model_w2v_test = load(open("./pickle_files/test_w2v_model.pkl","rb"))
 
 # WRITE VECTORS TO PICKLE FILE
 
@@ -441,16 +463,16 @@ def W2V_TweetVectorize(tweets,w2v_model):
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
     w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v_train)
 
-    dump(w2v_train_vectors,open("pickle_files/w2v_train_vectors.pkl","wb"))
+    dump(w2v_train_vectors,open("./pickle_files/w2v_train_vectors.pkl","w+b"))
 else:
-    w2v_train_vectors = load(open("pickle_files/w2v_train_vectors.pkl","rb"))
+    w2v_train_vectors = load(open("./pickle_files/w2v_train_vectors.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/w2v_test_vectors.pkl'):
     w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v_test)
 
-    dump(w2v_test_vectors,open("pickle_files/w2v_test_vectors.pkl","wb"))
+    dump(w2v_test_vectors,open("./pickle_files/w2v_test_vectors.pkl","w+b"))
 else:
-    w2v_test_vectors = load(open("pickle_files/w2v_test_vectors.pkl","rb"))
+    w2v_test_vectors = load(open("./pickle_files/w2v_test_vectors.pkl","rb"))
 
 def tsne_plot(model,words_to_plot):
     "Creates and TSNE model and plots it"
@@ -493,13 +515,22 @@ tsne_plot(model_w2v_train,words_num_to_plot)
 
 ########## CLASSIFICATION ##########
 
-def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels):
+def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels,vec_mode):
     xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
                                         train_labels,
                                         random_state=42, test_size=0.2)
 
-    svc = svm.SVC(kernel='linear', C=1, probability=True)
-    svc = svc.fit(xtrain, ytrain) # xtrain:bag of words features for train data, ytrain: train data labels
+    train_split_model_path = './pickle_files/SVM_train_split_' + vec_mode + '.pkl'
+    train_full_model_path  = './pickle_files/SVM_train_full_' + vec_mode + '.pkl'
+
+    if not os.path.is_file(train_split_model_path):
+        svc = svm.SVC(kernel='linear', C=1, probability=True)
+        svc = svc.fit(xtrain, ytrain) # xtrain:bag of words features for train data, ytrain: train data labels
+
+        dump(svc,open(train_split_model_path,'w+b'))
+    else:
+        svc = load(open(train_split_model_path,'rb'))
+    
     prediction = svc.predict(xvalid) #predict on the validation set
 
     F1_Score_split = f1_score(yvalid,prediction,average = 'micro') #evaluate on the validation set
@@ -511,7 +542,14 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     percentage_split = (float(correct_num) / float(len(yvalid)))
 
-    svc = svc.fit(train_vectors,train_labels)
+    if not os.path.isfile(train_full_model_path):
+        svc = svm.SVC(kernel='linear', C=1, probability=True)
+        svc = svc.fit(train_vectors,train_labels)
+
+        dump(svc,open(train_full_model_path,'w+b'))
+    else:
+        svc = load(open(train_full_model_path,'rb'))
+    
     prediction = svc.predict(test_vectors)
 
     F1_Score = f1_score(test_labels,prediction,average = 'micro')
@@ -558,14 +596,21 @@ def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     return (percentage_split,F1_Score_split,percentage,F1_Score)
 
-print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],bow_xtest,test_solutions['Tag']))
-#print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
-#print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
+print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],
+                     bow_xtest,test_solutions['Tag'],'bow'))
 
-#print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],bow_xtest,test_solutions['Tag']))
-#print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],tfidf_test,test_solutions['Tag']))
-print(len(w2v_train_vectors))
-print(len(training_dataframe['Tag']))
-print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],w2v_test_vectors,test_solutions['Tag']))
+#print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
+#                     tfidf_test,test_solutions['Tag'],'tfidf'))
+#print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
+#                     w2v_test_vectors,test_solutions['Tag'],'w2v'))
+
+print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
+                     bow_xtest,test_solutions['Tag']))
+
+print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],
+                     tfidf_test,test_solutions['Tag']))
+
+print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],
+                     w2v_test_vectors,test_solutions['Tag']))
 
 ####################################
