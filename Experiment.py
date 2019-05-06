@@ -358,7 +358,7 @@ bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
 
 bow_xtest  = bow_vectorizer.fit_transform(test_dataframe['Tweet'])
 
-print(bow_xtrain.shape)
+#print("SHARE\n"+bow_xtrain.shape)
 
 # TF-IDF
 
@@ -389,9 +389,9 @@ if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
     model_w2v_train.train(tokenized_tweet, total_examples= len(training_dataframe['Tweet']),
                          epochs=20)
 
-    dump(model_w2v_train,open("pickle_files/train_w2v_model.pkl","wb"))
+    dump(model_w2v_train,open("./pickle_files/train_w2v_model.pkl","wb"))
 else:
-    model_w2v_train = load(open("pickle_files/train_w2v_model.pkl","rb"))
+    model_w2v_train = load(open("./pickle_files/train_w2v_model.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
     tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
@@ -409,9 +409,9 @@ if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
 
     model_w2v_test.train(tokenized_tweet, total_examples= len(test_dataframe['Tweet']), epochs=20)
 
-    dump(model_w2v_test,open("pickle_files/test_w2v_model.pkl","wb"))
+    dump(model_w2v_test,open("./pickle_files/test_w2v_model.pkl","wb"))
 else:
-    model_w2v_test = load(open("pickle_files/test_w2v_model.pkl","rb"))
+    model_w2v_test = load(open("./pickle_files/test_w2v_model.pkl","rb"))
 
 # WRITE VECTORS TO PICKLE FILE
 
@@ -441,16 +441,16 @@ def W2V_TweetVectorize(tweets,w2v_model):
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
     w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v_train)
 
-    dump(w2v_train_vectors,open("pickle_files/w2v_train_vectors.pkl","wb"))
+    dump(w2v_train_vectors,open("./pickle_files/w2v_train_vectors.pkl","wb"))
 else:
-    w2v_train_vectors = load(open("pickle_files/w2v_train_vectors.pkl","rb"))
+    w2v_train_vectors = load(open("./pickle_files/w2v_train_vectors.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/w2v_test_vectors.pkl'):
     w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v_test)
 
-    dump(w2v_test_vectors,open("pickle_files/w2v_test_vectors.pkl","wb"))
+    dump(w2v_test_vectors,open("./pickle_files/w2v_test_vectors.pkl","wb"))
 else:
-    w2v_test_vectors = load(open("pickle_files/w2v_test_vectors.pkl","rb"))
+    w2v_test_vectors = load(open("./pickle_files/w2v_test_vectors.pkl","rb"))
 
 def tsne_plot(model,words_to_plot):
     "Creates and TSNE model and plots it"
