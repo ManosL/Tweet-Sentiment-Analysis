@@ -1,5 +1,6 @@
 # Import all libraries needed for the tutorial
 import os
+import os.path
 
 import numpy as np
 
@@ -51,6 +52,7 @@ from sklearn.metrics import f1_score
 
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
+numbers = '0123456789'
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -77,7 +79,7 @@ def remove_unnecessary_words(str):
 def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
-                                                    and len(word) > 1) or word == 'not']
+                                                    and len(word) > 1 and word[0] not in numbers) or word == 'not']
                                                      
     #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
     #                                                and len(word) > 1) or word == 'not']
@@ -215,14 +217,14 @@ matplotlib.pyplot.show()
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
-
+#training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
 
 
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
@@ -241,6 +243,7 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
+#test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
 
 
 
@@ -524,7 +527,7 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels,vec_mode)
     train_split_model_path = './pickle_files/SVM_train_split_' + vec_mode + '.pkl'
     train_full_model_path  = './pickle_files/SVM_train_full_' + vec_mode + '.pkl'
 
-    if not os.path.is_file(train_split_model_path):
+    if not os.path.isfile(train_split_model_path):
         svc = svm.SVC(kernel='linear', C=1, probability=True)
         svc = svc.fit(xtrain, ytrain) # xtrain:bag of words features for train data, ytrain: train data labels
 
@@ -597,14 +600,16 @@ def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     return (percentage_split,F1_Score_split,percentage,F1_Score)
 
-print(SVM_Classifier(bow_xtrain[0:500],training_dataframe['Tag'][0:500],
+print ("SVM: \n")
+print(SVM_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag'],'bow'))
 
-#print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
-#                     tfidf_test,test_solutions['Tag'],'tfidf'))
-#print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
-#                     w2v_test_vectors,test_solutions['Tag'],'w2v'))
+print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
+                     tfidf_test,test_solutions['Tag'],'tfidf'))
+print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
+                     w2v_test_vectors,test_solutions['Tag'],'w2v'))
 
+print("KNN: \n")
 print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag']))
 
