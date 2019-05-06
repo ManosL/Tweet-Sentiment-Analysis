@@ -1,6 +1,5 @@
 # Import all libraries needed for the tutorial
 import os
-import os.path
 
 import numpy as np
 
@@ -52,7 +51,6 @@ from sklearn.metrics import f1_score
 
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
-numbers = '0123456789'
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -79,7 +77,7 @@ def remove_unnecessary_words(str):
 def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
-                                                    and len(word) > 1 and word[0] not in numbers) or word == 'not']
+                                                    and len(word) > 1) or word == 'not']
                                                      
     #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
     #                                                and len(word) > 1) or word == 'not']
@@ -146,6 +144,7 @@ def readLexica():
 
 
 affin_dict,valence_tweet_dict,generic_dict,nrc_val_dict,nrctag_val_dict = readLexica()
+dictionaries = [affin_dict,valence_tweet_dict,nrc_val_dict,nrctag_val_dict]
 
 train_set_path = '../twitter_data/train2017.tsv'
 test_set_path  = '../twitter_data/test2017.tsv'
@@ -217,14 +216,14 @@ matplotlib.pyplot.show()
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
-#training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
+
 
 
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
@@ -243,7 +242,6 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
-#test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("[0-9]+","",t))
 
 
 
@@ -279,6 +277,7 @@ for attr in ['positive','negative','neutral']:
 
 print(pd.DataFrame(data = lines,columns = ['Max','Min','Average','Standard Deviation'],
                    index = ['positive','negative','neutral']))
+
 
 all_adjs_and_verbs = []
 all_adjs_and_verbs_pos = []
@@ -346,6 +345,7 @@ plt.axis("off")
 plt.show()
 
 print(training_dataframe)
+
 ###############################################
 
 # Getting the 20 most common words at negative tweets
@@ -383,7 +383,7 @@ bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
 
 bow_xtest  = bow_vectorizer.fit_transform(test_dataframe['Tweet'])
 
-#print("SHARE\n"+bow_xtrain.shape)
+print(bow_xtrain.shape)
 
 # TF-IDF
 
@@ -415,7 +415,6 @@ if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
                          epochs=20)
 
     dump(model_w2v_train,open("./pickle_files/train_w2v_model.pkl","w+b"))
-
 else:
     model_w2v_train = load(open("./pickle_files/train_w2v_model.pkl","rb"))
 
@@ -445,36 +444,62 @@ print(model_w2v_train.wv.most_similar(positive="trump"))
 
 def W2V_TweetVectorize(tweets,w2v_model):
     vectors = []
-    vector = np.zeros(w2v_model.wv.vector_size)
 
     for tweet in tweets:
         vector_words_num = 0
         splitted_tweet = nltk.word_tokenize(tweet)
+        vector = np.zeros(w2v_model.wv.vector_size)
+
+        dict_appeared_words_num = [0,0,0,0]
+        dict_valence_sum = [0,0,0,0]
+        curr_multipliers = [1,1,1,1]
 
         for word in splitted_tweet:
             if word in w2v_model.wv.vocab:
                 vector += w2v_model[word]
                 vector_words_num += 1
 
+            for index in range(0,len(dictionaries)):
+                if word in dictionaries[index].keys():
+                    dict_appeared_words_num[index] += 1
+
+                    if word != 'not':
+                        dict_valence_sum[index] += curr_multipliers[index]*dictionaries[index][word]
+                        curr_multipliers[index] = 1
+                    else:
+                        dict_valence_sum[index] += dictionaries[index]['not']
+                        curr_multipliers[index] = -1
+        
+        for i in range(0,len(dict_appeared_words_num)):
+            if dict_appeared_words_num[i] == 0:
+                dict_appeared_words_num[i] = 1
+        
+        dict_valence_sum = np.array(dict_valence_sum)
+        dict_appeared_words_num = np.array(dict_appeared_words_num)
+
         if vector_words_num == 0:
             print(tweet)
-            vectors.append(vector)
+            vector = vector
         else:
-            vectors.append(vector / vector_words_num)
+            vector = vector / vector_words_num
+        
+        vector = np.append(vector,dict_valence_sum / dict_appeared_words_num)
+
+        vectors.append(vector)
 
     return vectors 
 
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
     w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v_train)
-    dump(w2v_train_vectors,open("./pickle_files/w2v_train_vectors.pkl","w+b"))
 
+    dump(w2v_train_vectors,open("./pickle_files/w2v_train_vectors.pkl","w+b"))
 else:
     w2v_train_vectors = load(open("./pickle_files/w2v_train_vectors.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/w2v_test_vectors.pkl'):
     w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v_test)
-    dump(w2v_test_vectors,open("./pickle_files/w2v_test_vectors.pkl","w+b"))
 
+    dump(w2v_test_vectors,open("./pickle_files/w2v_test_vectors.pkl","w+b"))
 else:
     w2v_test_vectors = load(open("./pickle_files/w2v_test_vectors.pkl","rb"))
 
@@ -600,7 +625,6 @@ def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     return (percentage_split,F1_Score_split,percentage,F1_Score)
 
-print ("SVM: \n")
 print(SVM_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag'],'bow'))
 
@@ -609,7 +633,6 @@ print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
 print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
                      w2v_test_vectors,test_solutions['Tag'],'w2v'))
 
-print("KNN: \n")
 print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag']))
 
