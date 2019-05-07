@@ -51,7 +51,6 @@ from sklearn.metrics import f1_score
 
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
-numbers = '0123456789'
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -78,7 +77,7 @@ def remove_unnecessary_words(str):
 def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
-                                                    and len(word) > 1 and (word[0] not in numbers)) or word == 'not']
+                                                    and len(word) > 1) or word == 'not']
                                                      
     #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
     #                                                and len(word) > 1) or word == 'not']
@@ -217,7 +216,7 @@ matplotlib.pyplot.show()
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
@@ -238,7 +237,7 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: ' '.join(
 print(training_dataframe.Tweet)
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
@@ -403,7 +402,7 @@ if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
 
     model_w2v_train = gensim.models.Word2Vec(
                 tokenized_tweet,
-                size=200, # desired no. of features/independent variables
+                size=500, # desired no. of features/independent variables
                 window=5, # context window size
                 min_count=2,
                 sg = 1, # 1 for skip-gram model
@@ -424,7 +423,7 @@ if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
    
     model_w2v_test = gensim.models.Word2Vec(
                 tokenized_tweet,
-                size=200, # desired no. of features/independent variables
+                size=500, # desired no. of features/independent variables
                 window=5, # context window size
                 min_count=2,
                 sg = 1, # 1 for skip-gram model
@@ -441,7 +440,8 @@ else:
 
 # WRITE VECTORS TO PICKLE FILE
 
-print(model_w2v_train.wv.most_similar(positive="trump"))
+print(model_w2v_train.wv.most_similar(positive = "trump"))
+print(model_w2v_train.wv.most_similar(positive = 'mcgregor'))
 
 def W2V_TweetVectorize(tweets,w2v_model):
     vectors = []
@@ -455,22 +455,56 @@ def W2V_TweetVectorize(tweets,w2v_model):
         dict_valence_sum = [0,0,0,0]
         curr_multipliers = [1,1,1,1]
 
+        positive_words_num = 0
+        negative_words_num = 0
+        #neutral_words_num  = 0 I will determine later if I use it
+
+        min_valence = None
+        max_valence = None
+
         for word in splitted_tweet:
             if word in w2v_model.wv.vocab:
                 vector += w2v_model[word]
                 vector_words_num += 1
-
+            
+            appears_pos = 0
+            appears_neg  = 0
             for index in range(0,len(dictionaries)):
                 if word in dictionaries[index].keys():
                     dict_appeared_words_num[index] += 1
 
                     if word != 'not':
                         dict_valence_sum[index] += curr_multipliers[index]*dictionaries[index][word]
+                        curr_valence = curr_multipliers[index]*dictionaries[index][word]
+
+                        if dictionaries[index][word] >= 0:
+                            if curr_multipliers[index] == 1:
+                                appears_pos += 1
+                            else:
+                                appears_neg += 1
+                        else:
+                            if curr_multipliers[index] == 1:
+                                appears_neg += 1
+                            else:
+                                appears_pos += 1
+
+                        if min_valence == None or min_valence > curr_valence:
+                            min_valence = curr_valence
+
+                        if max_valence == None or max_valence < curr_valence:
+                            max_valence = curr_valence
+                        
                         curr_multipliers[index] = 1
                     else:
                         dict_valence_sum[index] += dictionaries[index]['not']
                         curr_multipliers[index] = -1
-        
+            
+            if (appears_pos != 0) or (appears_neg != 0):
+                if appears_pos >= appears_neg:
+                    positive_words_num += 1
+                else:
+                    negative_words_num += 1
+                        
         for i in range(0,len(dict_appeared_words_num)):
             if dict_appeared_words_num[i] == 0:
                 dict_appeared_words_num[i] = 1
@@ -485,6 +519,15 @@ def W2V_TweetVectorize(tweets,w2v_model):
             vector = vector / vector_words_num
         
         vector = np.append(vector,dict_valence_sum / dict_appeared_words_num)
+        vector = np.append(vector,[positive_words_num,negative_words_num])
+
+        if min_valence == None:
+            min_valence = 0
+        
+        if max_valence == None:
+            max_valence = 0
+        
+        vector = np.append(vector,[max_valence,min_valence])
 
         vectors.append(vector)
 
@@ -540,7 +583,7 @@ def tsne_plot(model,words_to_plot):
 words_num_to_plot = 1000
 tsne_plot(model_w2v_train,words_num_to_plot)
 
-# TO ADD (PROBABLY) EXTRA FEATURES
+
 ####################################
 
 ########## CLASSIFICATION ##########
