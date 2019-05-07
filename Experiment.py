@@ -51,6 +51,7 @@ from sklearn.metrics import f1_score
 
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
+numbers = '0123456789'
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -77,7 +78,7 @@ def remove_unnecessary_words(str):
 def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
-                                                    and len(word) > 1) or word == 'not']
+                                                    and len(word) > 1 and (word[0] not in numbers)) or word == 'not']
                                                      
     #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
     #                                                and len(word) > 1) or word == 'not']
@@ -216,7 +217,7 @@ matplotlib.pyplot.show()
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
@@ -237,7 +238,7 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: ' '.join(
 print(training_dataframe.Tweet)
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
