@@ -51,6 +51,7 @@ from sklearn.metrics import f1_score
 
 # removed @ and #
 my_punctuation = '!"$%&\'()*+,-./:;<=>?[\\]^_`{|}~'
+stop = ['st','th']
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -77,10 +78,10 @@ def remove_unnecessary_words(str):
 def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
-                                                    and len(word) > 1) or word == 'not']
+                                                    and len(word) > 1 and word not in stop) or word == 'not']
                                                      
     #tweet = [ stemmer.stem(word) for word in tweet if (word not in stopwords.words('english') 
-    #                                                and len(word) > 1) or word == 'not']
+    #                                                and len(word) > 1 and word[0] not in numbers) or word == 'not']
 
     return tweet
 
@@ -212,17 +213,16 @@ matplotlib.pyplot.show()
 
 ##############################################
 # CLEANUP PHASE #
-
+print(training_dataframe.Tweet)
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~+]+","",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~+]+","",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~]+","",t))
+training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z ]'," ",t))
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
-
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
-training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
 
 
 
@@ -235,9 +235,9 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: ' '.join(
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 print(training_dataframe.Tweet)
-
+"""
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ ]',"",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
@@ -254,7 +254,7 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: ' '.join( stop_wo
 #test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 #print(test_dataframe.Tweet)
-
+"""
 # STATISTICS PART 
 
 training_dataframe['WordCount'] = training_dataframe.Tweet.apply(lambda t: len(t.split()))
