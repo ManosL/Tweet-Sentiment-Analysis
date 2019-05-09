@@ -443,7 +443,6 @@ def W2V_TweetVectorize(tweets,w2v_model):
 
         positive_words_num = 0
         negative_words_num = 0
-        #neutral_words_num  = 0 I will determine later if I use it
 
         min_valence = None
         max_valence = None
@@ -499,7 +498,6 @@ def W2V_TweetVectorize(tweets,w2v_model):
         dict_appeared_words_num = np.array(dict_appeared_words_num)
 
         if vector_words_num == 0:
-            print(tweet)
             vector = vector
         else:
             vector = vector / vector_words_num
@@ -566,7 +564,7 @@ def tsne_plot(model,words_to_plot):
 
     return
 
-words_num_to_plot = 1000
+words_num_to_plot = 500
 tsne_plot(model_w2v_train,words_num_to_plot)
 
 
@@ -594,13 +592,6 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels,vec_mode)
 
     F1_Score_split = f1_score(yvalid,prediction,average = 'micro') #evaluate on the validation set
 
-    correct_num = 0
-    for pred,yval in zip(prediction,yvalid):
-        if yval == pred:
-            correct_num += 1
-
-    percentage_split = (float(correct_num) / float(len(yvalid)))
-
     if not os.path.isfile(train_full_model_path):
         svc = svm.SVC(kernel='linear', C=1, probability=True)
         svc = svc.fit(train_vectors,train_labels)
@@ -613,47 +604,7 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels,vec_mode)
 
     F1_Score = f1_score(test_labels,prediction,average = 'micro')
 
-    correct_num = 0
-    for pred,yval in zip(prediction,test_labels):
-        if yval == pred:
-            correct_num += 1
-
-    percentage = (float(correct_num) / float(len(test_labels)))
-
-    return (percentage_split,F1_Score_split,percentage,F1_Score)
-
-def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
-    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
-                                        train_labels,
-                                        random_state=42, test_size=0.2)   
-
-    knn_classifier = KNeighborsClassifier(n_neighbors = 5)
-
-    knn_classifier = knn_classifier.fit(xtrain,ytrain)
-    prediction = knn_classifier.predict(xvalid)
-
-    F1_Score_split = f1_score(yvalid,prediction,average = 'micro')
-
-    correct_num = 0
-    for tag,yval in zip(prediction,yvalid):
-        if tag == yval:
-            correct_num += 1
-    
-    percentage_split = (float(correct_num)/float(len(yvalid)))
-
-    knn_classifier = knn_classifier.fit(train_vectors,train_labels)
-    prediction = knn_classifier.predict(test_vectors)
-
-    F1_Score = f1_score(test_labels,prediction,average = 'micro')
-
-    correct_num = 0
-    for pred,yval in zip(prediction,test_labels):
-        if yval == pred:
-            correct_num += 1
-
-    percentage = (float(correct_num) / float(len(test_labels)))
-
-    return (percentage_split,F1_Score_split,percentage,F1_Score)
+    return (F1_Score_split,F1_Score)
 
 print(SVM_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag'],'bow'))
@@ -662,6 +613,25 @@ print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
                      tfidf_test,test_solutions['Tag'],'tfidf'))
 print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
                      w2v_test_vectors,test_solutions['Tag'],'w2v'))
+
+def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
+    xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
+                                        train_labels,
+                                        random_state=42, test_size=0.2)   
+
+    knn_classifier = KNeighborsClassifier(n_neighbors = 10)
+
+    knn_classifier = knn_classifier.fit(xtrain,ytrain)
+    prediction = knn_classifier.predict(xvalid)
+
+    F1_Score_split = f1_score(yvalid,prediction,average = 'micro')
+
+    knn_classifier = knn_classifier.fit(train_vectors,train_labels)
+    prediction = knn_classifier.predict(test_vectors)
+
+    F1_Score = f1_score(test_labels,prediction,average = 'micro')
+
+    return (F1_Score_split,F1_Score)
 
 print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
                      bow_xtest,test_solutions['Tag']))
