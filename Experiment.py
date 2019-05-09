@@ -180,29 +180,22 @@ for filePath in filesToRead:
                                           # same sequence as tweets at file
         dataframes.append(curr_df)
 
-file.close()
+    file.close()
 
 training_dataframe = dataframes[0]
 test_dataframe = dataframes[1]
 test_solutions = dataframes[2]
 
-"""
-print("Positive: %d\nNegative: %d\nNeutral: %d\n" % 
-            (len(training_dataframe[training_dataframe['Tag'] == 'positive']),
-            len(training_dataframe[training_dataframe['Tag'] == 'negative']),
-            len(training_dataframe[training_dataframe['Tag'] == 'neutral'])))
-"""
 
-#COUNT example
 tags = training_dataframe['Tag'].value_counts()
 print(tags)
 neutral_num = tags['neutral']
 positive_num = tags['positive']
 negative_num = tags['negative']
 
-print("Positive Tweets Percentage %.1f" % ((float(positive_num) / len(training_dataframe))*100))
-print("Negative Tweets Percentage %.1f" % ((float(negative_num) / len(training_dataframe))*100))
-print("Neutral Tweets Percentage %.1f" % ((float(neutral_num) / len(training_dataframe))*100))
+print("Positive Tweets Percentage %.1f percent" % ((float(positive_num) / len(training_dataframe))*100))
+print("Negative Tweets Percentage %.1f percent" % ((float(negative_num) / len(training_dataframe))*100))
+print("Neutral Tweets Percentage %.1f percent" % ((float(neutral_num) / len(training_dataframe))*100))
 
 # Printing the bar plot for tweets
 
@@ -213,7 +206,6 @@ matplotlib.pyplot.show()
 
 ##############################################
 # CLEANUP PHASE #
-print(training_dataframe.Tweet)
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: t.lower())
 
 #re_punctuation = r"[{}]".format(my_punctuation)
@@ -224,8 +216,6 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: re.sub(r'
 
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: filter(remove_unnecessary_words,t))
 
-
-
 training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
 lemmatizer = WordNetLemmatizer()
@@ -235,15 +225,13 @@ training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t: ' '.join(
 #training_dataframe['Tweet'] = training_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
 print(training_dataframe.Tweet)
-"""
+
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: t.lower())
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z#@ 0-9]',"",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~+]+","",t))
 
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("@[a-zA-Z]+","",t))
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z]+","",t))
-test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z]+","",t))
-
-
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("#[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~+]+","",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub("http[a-zA-Z!\"$%&\'()*+,-./:;<=>?[\\]^_`{|}~]+","",t))
+test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: re.sub(r'[^a-zA-Z ]'," ",t))
 
 test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: nltk.word_tokenize(t) )
 
@@ -253,8 +241,8 @@ test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t: ' '.join( stop_wo
 #stemmer = PorterStemmer()
 #test_dataframe['Tweet'] = test_dataframe.Tweet.apply(lambda t:  ' '.join( stop_words(stemmer,t) ))
 
-#print(test_dataframe.Tweet)
-"""
+print(test_dataframe.Tweet)
+
 # STATISTICS PART 
 
 training_dataframe['WordCount'] = training_dataframe.Tweet.apply(lambda t: len(t.split()))
@@ -271,7 +259,6 @@ for attr in ['positive','negative','neutral']:
 
     wanted_tweets = wanted_tweets.sort_values(by = 'WordCount')
     hist = wanted_tweets['WordCount'].value_counts(sort = False).sort_index()
-    print(hist)
     hist.plot.bar(title = attr.title() + " tweet no. of words distribution")
     plt.show()
 
@@ -291,7 +278,6 @@ for tweet,tweet_tag in zip(training_dataframe['Tweet'],training_dataframe['Tag']
     splitted_tweet = tweet.split(' ')
     splitted_tweet = [word for word in splitted_tweet if len(word) > 1]
 
-    #print(splitted_tweet)
     pos_tags = pos_tag(splitted_tweet)
 
     for tag in pos_tags: 
@@ -344,8 +330,6 @@ plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
 plt.show()
 
-print(training_dataframe)
-
 ###############################################
 
 # Getting the 20 most common words at negative tweets
@@ -395,6 +379,8 @@ tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
 
 tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
 
+print(tfidf_train.shape)
+
 # Word2Vec
 
 if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
@@ -438,7 +424,7 @@ if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
 else:
     model_w2v_test = load(open("./pickle_files/test_w2v_model.pkl","rb"))
 
-# WRITE VECTORS TO PICKLE FILE
+# Checking the results
 
 print(model_w2v_train.wv.most_similar(positive = "trump"))
 print(model_w2v_train.wv.most_similar(positive = 'mcgregor'))
