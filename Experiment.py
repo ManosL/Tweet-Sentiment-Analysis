@@ -75,7 +75,7 @@ def remove_unnecessary_words(str):
     else:
         return False
 
-def stop_words(lemmatizer,tweet):
+def stop_words(stemmer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
                                                     and len(word) > 1 and word not in stop) or word == 'not']
@@ -255,7 +255,7 @@ for attr in ['positive','negative','neutral']:
 
     lines.append([max(wanted_tweets_count),min(wanted_tweets_count),
                   sum(wanted_tweets_count)/len(wanted_tweets_count),
-                  np.std(wanted_tweets)])
+                  np.std(wanted_tweets_count)])
 
     wanted_tweets = wanted_tweets.sort_values(by = 'WordCount')
     hist = wanted_tweets['WordCount'].value_counts(sort = False).sort_index()
@@ -606,13 +606,20 @@ def SVM_Classifier(train_vectors,train_labels,test_vectors,test_labels,vec_mode)
 
     return (F1_Score_split,F1_Score)
 
-print(SVM_Classifier(bow_xtrain,training_dataframe['Tag'],
-                     bow_xtest,test_solutions['Tag'],'bow'))
+split_scores = []
+test_scores  = []
 
-print(SVM_Classifier(tfidf_train,training_dataframe['Tag'],
-                     tfidf_test,test_solutions['Tag'],'tfidf'))
-print(SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
-                     w2v_test_vectors,test_solutions['Tag'],'w2v'))
+svm_bow_split, svm_bow_test = SVM_Classifier(bow_xtrain,training_dataframe['Tag'],
+                                bow_xtest,test_solutions['Tag'],'bow')
+
+svm_tfidf_split, svm_tfidf_test = SVM_Classifier(tfidf_train,training_dataframe['Tag'],
+                                    tfidf_test,test_solutions['Tag'],'tfidf')
+
+svm_w2v_split, svm_w2v_test = SVM_Classifier(w2v_train_vectors,training_dataframe['Tag'],
+                                w2v_test_vectors,test_solutions['Tag'],'w2v')
+
+split_scores.append([svm_bow_split,svm_tfidf_split,svm_w2v_split])
+test_scores.append([svm_bow_test,svm_tfidf_test,svm_w2v_test])
 
 def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
     xtrain, xvalid, ytrain, yvalid = train_test_split(train_vectors, 
@@ -633,13 +640,22 @@ def KNN_Classifier(train_vectors,train_labels,test_vectors,test_labels):
 
     return (F1_Score_split,F1_Score)
 
-print(KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
-                     bow_xtest,test_solutions['Tag']))
+knn_bow_split,knn_bow_test = KNN_Classifier(bow_xtrain,training_dataframe['Tag'],
+                                bow_xtest,test_solutions['Tag'])
 
-print(KNN_Classifier(tfidf_train,training_dataframe['Tag'],
-                     tfidf_test,test_solutions['Tag']))
+knn_tfidf_split,knn_tfidf_test = KNN_Classifier(tfidf_train,training_dataframe['Tag'],
+                                    tfidf_test,test_solutions['Tag'])
 
-print(KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],
-                     w2v_test_vectors,test_solutions['Tag']))
+knn_w2v_split,knn_w2v_test = KNN_Classifier(w2v_train_vectors,training_dataframe['Tag'],
+                     w2v_test_vectors,test_solutions['Tag'])
+
+split_scores.append([knn_bow_split,knn_tfidf_split,knn_w2v_split])
+test_scores.append([knn_bow_test,knn_tfidf_test,knn_w2v_test])
+
+print(pd.DataFrame(data = split_scores,columns = ['Bag Of Words','TF-IDF','Word Embeddings'],
+                    index = ['SVM','K-NN with K=10']))
+
+print(pd.DataFrame(data = test_scores,columns = ['Bag Of Words','TF-IDF','Word Embeddings'],
+index = ['SVM','K-NN with K=10']))
 
 ####################################
