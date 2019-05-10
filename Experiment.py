@@ -75,7 +75,7 @@ def remove_unnecessary_words(str):
     else:
         return False
 
-def stop_words(stemmer,tweet):
+def stop_words(lemmatizer,tweet):
 
     tweet = [ lemmatizer.lemmatize(word, get_wordnet_pos(word)) for word in tweet if (word not in stopwords.words('english') 
                                                     and len(word) > 1 and word not in stop) or word == 'not']
