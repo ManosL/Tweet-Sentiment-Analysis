@@ -202,7 +202,7 @@ print("Neutral Tweets Percentage %.1f percent" % ((float(neutral_num) / len(trai
 tags.plot.bar(title = 'Tweets sentimel tendency')
 plt.xticks(rotation = 0)
 
-#matplotlib.pyplot.show()
+matplotlib.pyplot.show()
 
 ##############################################
 # CLEANUP PHASE #
@@ -260,7 +260,7 @@ for attr in ['positive','negative','neutral']:
     wanted_tweets = wanted_tweets.sort_values(by = 'WordCount')
     hist = wanted_tweets['WordCount'].value_counts(sort = False).sort_index()
     hist.plot.bar(title = attr.title() + " tweet no. of words distribution")
-#    plt.show()
+    plt.show()
 
 print(pd.DataFrame(data = lines,columns = ['Max','Min','Average','Standard Deviation'],
                    index = ['positive','negative','neutral']))
@@ -301,7 +301,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("All Words")
 plt.imshow(cloud,interpolation = 'bilinear')
 plt.axis("off")
-#plt.show()
+plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_pos)
 
@@ -310,7 +310,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Positive Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-#plt.show()
+plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_neg)
 
@@ -319,7 +319,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Negative Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-#plt.show()
+plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_neutral)
 
@@ -328,7 +328,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Neutral Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-#plt.show()
+plt.show()
 
 ###############################################
 
@@ -351,7 +351,7 @@ most_common = count.most_common(20)
 print(most_common)
 
 plt.bar([x[0] for x in most_common],[x[1] for x in most_common],data = most_common)
-#plt.show()
+plt.show()
 
 ####################################
 
@@ -381,7 +381,8 @@ print(tfidf_train.shape)
 
 if not os.path.isfile('./pickle_files/w2v_model.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
-    tokenized_tweet += test_dataframe['Tweet'].apply(lambda x: x.split())
+    tokenized_tweet = tokenized_tweet.append(test_dataframe['Tweet'].apply(lambda x: x.split()),
+                                            ignore_index = True)
 
     model_w2v = gensim.models.Word2Vec(
                 tokenized_tweet,
@@ -543,7 +544,7 @@ def tsne_plot(model,words_to_plot):
     return
 
 words_num_to_plot = 500
-#tsne_plot(model_w2v,words_num_to_plot)
+tsne_plot(model_w2v,words_num_to_plot)
 
 
 ####################################
