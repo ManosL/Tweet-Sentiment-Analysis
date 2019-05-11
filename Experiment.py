@@ -202,7 +202,7 @@ print("Neutral Tweets Percentage %.1f percent" % ((float(neutral_num) / len(trai
 tags.plot.bar(title = 'Tweets sentimel tendency')
 plt.xticks(rotation = 0)
 
-matplotlib.pyplot.show()
+#matplotlib.pyplot.show()
 
 ##############################################
 # CLEANUP PHASE #
@@ -260,7 +260,7 @@ for attr in ['positive','negative','neutral']:
     wanted_tweets = wanted_tweets.sort_values(by = 'WordCount')
     hist = wanted_tweets['WordCount'].value_counts(sort = False).sort_index()
     hist.plot.bar(title = attr.title() + " tweet no. of words distribution")
-    plt.show()
+#    plt.show()
 
 print(pd.DataFrame(data = lines,columns = ['Max','Min','Average','Standard Deviation'],
                    index = ['positive','negative','neutral']))
@@ -301,7 +301,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("All Words")
 plt.imshow(cloud,interpolation = 'bilinear')
 plt.axis("off")
-plt.show()
+#plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_pos)
 
@@ -310,7 +310,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Positive Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-plt.show()
+#plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_neg)
 
@@ -319,7 +319,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Negative Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-plt.show()
+#plt.show()
 
 all_adjs_and_verbs_text = ' '.join(all_adjs_and_verbs_neutral)
 
@@ -328,7 +328,7 @@ cloud = wordcloud.WordCloud().generate(all_adjs_and_verbs_text)
 plt.title("Neutral Words")
 plt.imshow(cloud,interpolation='bilinear')
 plt.axis("off")
-plt.show()
+#plt.show()
 
 ###############################################
 
@@ -351,7 +351,7 @@ most_common = count.most_common(20)
 print(most_common)
 
 plt.bar([x[0] for x in most_common],[x[1] for x in most_common],data = most_common)
-plt.show()
+#plt.show()
 
 ####################################
 
@@ -359,34 +359,31 @@ plt.show()
 
 # Bag Of Words
 
-bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
+bow_vectorizer = CountVectorizer(max_features = 2000,stop_words = 'english')
 
 bow_xtrain = bow_vectorizer.fit_transform(training_dataframe['Tweet'])
 
-bow_vectorizer = CountVectorizer(max_features = 1000,stop_words = 'english')
-
-bow_xtest  = bow_vectorizer.fit_transform(test_dataframe['Tweet'])
+bow_xtest  = bow_vectorizer.transform(test_dataframe['Tweet'])
 
 print(bow_xtrain.shape)
 
 # TF-IDF
 
-tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
+tfidf_vectorizer = TfidfVectorizer(max_features = 2000,stop_words = 'english')
 
 tfidf_train = tfidf_vectorizer.fit_transform(training_dataframe['Tweet'])
 
-tfidf_vectorizer = TfidfVectorizer(max_features = 1000,stop_words = 'english')
-
-tfidf_test  = tfidf_vectorizer.fit_transform(test_dataframe['Tweet'])
+tfidf_test  = tfidf_vectorizer.transform(test_dataframe['Tweet'])
 
 print(tfidf_train.shape)
 
 # Word2Vec
 
-if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
+if not os.path.isfile('./pickle_files/w2v_model.pkl'):
     tokenized_tweet = training_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
+    tokenized_tweet += test_dataframe['Tweet'].apply(lambda x: x.split())
 
-    model_w2v_train = gensim.models.Word2Vec(
+    model_w2v = gensim.models.Word2Vec(
                 tokenized_tweet,
                 size=500, # desired no. of features/independent variables
                 window=5, # context window size
@@ -397,37 +394,18 @@ if not os.path.isfile('./pickle_files/train_w2v_model.pkl'):
                 workers= 2, # no.of cores
                 seed = 34) 
 
-    model_w2v_train.train(tokenized_tweet, total_examples= len(training_dataframe['Tweet']),
-                         epochs=20)
+    model_w2v.train(tokenized_tweet, 
+        total_examples= len(training_dataframe['Tweet']) + len(test_dataframe['Tweet']),
+        epochs=20)
 
-    dump(model_w2v_train,open("./pickle_files/train_w2v_model.pkl","w+b"))
+    dump(model_w2v,open("./pickle_files/w2v_model.pkl","w+b"))
 else:
-    model_w2v_train = load(open("./pickle_files/train_w2v_model.pkl","rb"))
-
-if not os.path.isfile('./pickle_files/test_w2v_model.pkl'):
-    tokenized_tweet = test_dataframe['Tweet'].apply(lambda x: x.split()) # tokenizing 
-   
-    model_w2v_test = gensim.models.Word2Vec(
-                tokenized_tweet,
-                size=500, # desired no. of features/independent variables
-                window=5, # context window size
-                min_count=2,
-                sg = 1, # 1 for skip-gram model
-                hs = 0,
-                negative = 10, # for negative sampling
-                workers= 8, # no.of cores
-                seed = 34) 
-
-    model_w2v_test.train(tokenized_tweet, total_examples= len(test_dataframe['Tweet']), epochs=20)
-
-    dump(model_w2v_test,open("./pickle_files/test_w2v_model.pkl","w+b"))
-else:
-    model_w2v_test = load(open("./pickle_files/test_w2v_model.pkl","rb"))
+    model_w2v = load(open("./pickle_files/w2v_model.pkl","rb"))
 
 # Checking the results
 
-print(model_w2v_train.wv.most_similar(positive = "trump"))
-print(model_w2v_train.wv.most_similar(positive = 'mcgregor'))
+print(model_w2v.wv.most_similar(positive = "trump"))
+print(model_w2v.wv.most_similar(positive = 'mcgregor'))
 
 def W2V_TweetVectorize(tweets,w2v_model):
     vectors = []
@@ -518,14 +496,14 @@ def W2V_TweetVectorize(tweets,w2v_model):
     return vectors 
 
 if not os.path.isfile('./pickle_files/w2v_train_vectors.pkl'):
-    w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v_train)
+    w2v_train_vectors = W2V_TweetVectorize(training_dataframe['Tweet'],model_w2v)
 
     dump(w2v_train_vectors,open("./pickle_files/w2v_train_vectors.pkl","w+b"))
 else:
     w2v_train_vectors = load(open("./pickle_files/w2v_train_vectors.pkl","rb"))
 
 if not os.path.isfile('./pickle_files/w2v_test_vectors.pkl'):
-    w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v_test)
+    w2v_test_vectors = W2V_TweetVectorize(test_dataframe['Tweet'],model_w2v)
 
     dump(w2v_test_vectors,open("./pickle_files/w2v_test_vectors.pkl","w+b"))
 else:
@@ -565,7 +543,7 @@ def tsne_plot(model,words_to_plot):
     return
 
 words_num_to_plot = 500
-tsne_plot(model_w2v_train,words_num_to_plot)
+#tsne_plot(model_w2v,words_num_to_plot)
 
 
 ####################################
